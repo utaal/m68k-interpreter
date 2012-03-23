@@ -1,3 +1,5 @@
+package com.github.utaal.m68k
+
 import scala.util.parsing.combinator.RegexParsers
 
 sealed trait Size
@@ -27,18 +29,18 @@ case class Absolute(addr: Int, size: Size) extends Addressing
 
 case class Op(opcode: String, size: Option[Size], operands: List[Operand])
 
-object InputParser extends RegexParsers {
+object M68kParser extends RegexParsers {
   override val skipWhitespace = false
   val WS = rep(" ")
-  val immediate = "#" ~ """[0-9]+""".r ^^ { s => val (_ ~ n) = s; Immed(n.toInt) }
-  val label = "#" ~ """[A-Z][0-9A-Z]+""".r ^^ { s => val (_ ~ label) = s; Label(label) }
+    val immediate = "#" ~> """[0-9]+""".r ^^ { case n => Immed(n.toInt) }
+  val label = "#" ~> """[A-Z][0-9A-Z]+""".r ^^ { case label => Label(label) }
   val const = immediate | label
-  val DATA_REG = "D" ~ """[0-9]+""".r ^^ { s => val (_ ~ n) = s; Data(n.toInt) }
-  val ADDR_REG = "A" ~ """[0-9]+""".r ^^ { s => val (_ ~ n) = s; Address(n.toInt) }
+  val DATA_REG = "D" ~> """[0-9]+""".r ^^ { n => Data(n.toInt) }
+  val ADDR_REG = "A" ~> """[0-9]+""".r ^^ { n => Address(n.toInt) }
   val register = (DATA_REG | ADDR_REG) ^^ { s => Direct(s) }
-  val indir = "(" ~ register ~ ")" ^^ { s => val (_ ~ Direct(reg) ~ _) = s; Indirect(reg) }
-  val indir_incr = indir ~ "+" ^^ { s => val (Indirect(reg) ~ _) = s; IndirIncr(reg) }
-  val indir_decr = "-" ~ indir ^^ { s => val (_ ~ Indirect(reg)) = s; IndirDecr(reg) }
+  val indir = "(" ~> register <~ ")" ^^ { case Direct(reg) => Indirect(reg) }
+  val indir_incr = indir <~ "+" ^^ { case Indirect(reg) => IndirIncr(reg) }
+  val indir_decr = "-" ~> indir ^^ { case Indirect(reg) => IndirDecr(reg) }
   val DISPL = regex("""[0-9]+"""r) ^^ { s => s.toInt }
   val index_displ = DISPL ~ indir ^^ { s => val (displ ~ Indirect(reg)) = s; IdxDispl(displ, reg) }
   val SIZE = "." ~ """[BWL]""".r ^^ { s => val (_ ~ size) = s; size match {
@@ -66,16 +68,17 @@ object InputParser extends RegexParsers {
   val line = op_2 | op_1
 
   def parse(in: String) = parseAll(line, in) match {
-    case Success(res, _) => res
-    case f:Failure => throw new Exception(f.toString)
+    case Success(res, _) => Some(res)
+    case f:Failure => None
   }
 }
 
-object describe__ {
-  def apply[T <: AnyRef](t: T)(implicit m: scala.reflect.Manifest[T]) = println("t was " + t.toString + " of class " + t.getClass.getName() + ", erased from " + m.erasure)
-}
+/*object describe__ {*/
+/*  def apply[T <: AnyRef](t: T)(implicit m: scala.reflect.Manifest[T]) = println("t was " + t.toString + " of class " + t.getClass.getName() + ", erased from " + m.erasure)*/
+/*}*/
 
 /*val lines = io.Source.stdin.getLines*/
+/*
 val lines = List(
   "ADD #3"
 , "ADD.W D3"
@@ -83,15 +86,16 @@ val lines = List(
 , "MUL -(D3)"
 , "MUL 2(A3, D2.W), 33.W"
 )
-for (l <- lines) println(InputParser.parse(l));
+for (l <- lines) println(M68kParser.parse(l));
 
-def tp(parser: InputParser.Parser[_], s: String) =
-  println(InputParser.parseAll(parser, s))
-tp(InputParser.operand, "D3")
+def tp(parser: M68kParser.Parser[_], s: String) =
+  println(M68kParser.parseAll(parser, s))
+tp(M68kParser.operand, "D3")
 val operands = List(
   "#1000"
 , "#AAA"
 )
-for (o <- operands) tp(InputParser.operand, o)
-//tp(InputParser.line, "MUL D3, D2")
+for (o <- operands) tp(M68kParser.operand, o)
+  */
+//tp(M68kParser.line, "MUL D3, D2")
 
