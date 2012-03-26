@@ -2,30 +2,35 @@ package com.github.utaal.m68k
 
 import com.github.utaal.m68k.ast._
 
-object bitwise {
-  implicit def mask(size: Size) = new {
-    private def getMask: Long = size match {
-      case B => 0xffL
-      case W => 0xffffL
-      case L => 0xffffffffL
-    }
-
-    def mask(value: Long): Long = value & getMask
-    def reverseMask(value: Long): Long = value & (0xffffffffL ^ getMask)
-  }
+object RegisterState {
+  def apply(): RegisterState = RegisterState()
 }
-
-import bitwise._
 
 case class RegisterState(value: Long) {
   require (value >= 0L && value <= 0xffffffffL)
-  def get(size: Size): Long = size mask value
+  def getMask(size: Size): Long = size match {
+    case B => 0xffL
+    case W => 0xffffL
+    case L => 0xffffffffL
+  }
+  def mask(size: Size, value: Long): Long = value & getMask(size)
+  def reverseMask(size: Size, value: Long): Long = value & (0xffffffffL ^ getMask(size))
+
+  def get(size: Size): Long = mask(size, value)
   def set(size: Size, newValue: Long) =
-    new RegisterState((size reverseMask value) | (size mask newValue))
+    new RegisterState(reverseMask(size, value) | mask(size, newValue))
+}
+
+object ProgramCounter {
+  def apply(): ProgramCounter = ProgramCounter(0L)
 }
 
 case class ProgramCounter(value: Long) {
   require (value >= 0L && value <= 0xffffffL)
+}
+
+object StatusRegister {
+  def apply(): StatusRegister = StatusRegister(false, false, false, false, false)
 }
 
 case class StatusRegister(C: Boolean, V: Boolean, Z: Boolean, N: Boolean, X: Boolean)
@@ -35,6 +40,18 @@ object CPUState {
   val AddressRegisterNumber = 8
   val FramePointerRegister = 6
   val StackPointerRegister = 7
+
+  private def makeRegisterArray(num: Int): Vector[RegisterState] = {
+    val emptyRegState = RegisterState(0L)
+    Vector.fill[RegisterState](num)(emptyRegState)
+  }
+
+  def apply(): CPUState = CPUState(
+    CPUState.makeRegisterArray(CPUState.DataRegisterNumber),
+    CPUState.makeRegisterArray(CPUState.AddressRegisterNumber),
+    ProgramCounter(),
+    StatusRegister()
+  )
 }
 
 case class CPUState(
@@ -43,8 +60,6 @@ case class CPUState(
   PC: ProgramCounter,
   SR: StatusRegister
 ) {
-  val dataRegisters = (0 to 8) map (RegisterState(_))
-  
   private def updatedRegVector(vec: Vector[RegisterState], num: Int, size: Size, value: Long) =
     vec.updated(num, vec(num).set(size, value))
 
@@ -58,10 +73,21 @@ case class CPUState(
     this.copy(A = updatedRegVector(A, number, size, value))
   }
 
+  val FP = A(CPUState.FramePointerRegister)
+
   def setFP(size: Size, value: Long) =
     setA(CPUState.FramePointerRegister, size, value)
 
+  val SP = A(CPUState.StackPointerRegister)
+
   def setSP(size: Size, value: Long) =
     setA(CPUState.StackPointerRegister, size, value)
+
+  def setPC(value: Long) =
+    this.copy(PC = ProgramCounter(value))
+
+  def setSR(
+    C: Boolean = SR.C, V: Boolean = SR.V, Z: Boolean = SR.Z, N: Boolean = SR.N, X: Boolean = SR.X) =
+    this.copy(SR = StatusRegister(C, SR.V, SR.Z, SR.N, SR.X))
 }
 
