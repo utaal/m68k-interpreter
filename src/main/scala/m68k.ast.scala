@@ -10,9 +10,11 @@ sealed trait Const extends Operand
 case class Immed(value: Int) extends Const
 case class Label(name: String) extends Const
 
-sealed trait Register extends Operand
-case class Data(number: Int) extends Register
-case class Address(number: Int) extends Register
+sealed trait Register extends Operand {
+  val number: Int
+}
+case class Data(override val number: Int) extends Register
+case class Address(override val number: Int) extends Register
 
 case class SizedRegister(reg: Register, size: Size)
 
@@ -26,3 +28,4 @@ case class IdxBaseDispl(displ: Int, base: SizedRegister, index: Register) extend
 case class Absolute(addr: Int, size: Size) extends Addressing
 
 case class Op(opcode: String, size: Option[Size], operands: List[Operand])
+case class Line(label: Option[String], op: Op)

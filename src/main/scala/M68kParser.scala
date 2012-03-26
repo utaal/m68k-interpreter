@@ -8,8 +8,9 @@ object M68kParser extends RegexParsers {
   val NUMBER = regex("""[0-9]+""".r) ^^ { n => n.toInt }
   val WS = rep(" ")
   val immediate = "#" ~> NUMBER ^^ { case n => Immed(n) }
-  val label = "#" ~> """[a-zA-Z_][0-9a-zA-Z_]+""".r ^^ { case label => Label(label.toLowerCase) }
-  val const = immediate | label
+  val LABEL = regex("""[a-zA-Z_][0-9a-zA-Z_]+""".r) ^^ { label => label.toLowerCase }
+  val labelImmediate = "#" ~> LABEL ^^ { case label => Label(label) }
+  val const = immediate | labelImmediate
   val DATA_REG = "D" ~> NUMBER ^^ { n => Data(n) }
   val ADDR_REG = "A" ~> NUMBER ^^ { n => Address(n) }
   val register = (DATA_REG | ADDR_REG) ^^ { s => Direct(s) }
@@ -32,17 +33,18 @@ object M68kParser extends RegexParsers {
   val operand =
     const | register | indir | indir_incr | indir_decr | index_displ | index_base_displ | absolute
   val OPCODE = """[A-Z]+""".r
+  val lineLabel = LABEL <~ ":"
   val op_1 = OPCODE ~ (SIZE?) ~ WS ~ operand ^^ {
     case opcode ~ size ~ _ ~ soperand => Op(opcode, size, List(soperand))
   }
   val op_2 = op_1 ~ "," ~ WS ~ operand ^^ {
-    case Op(opcode, size, operands) ~ _ ~ _ ~ soperand => Op(opcode, size, operands :+ soperand)
+    case Op(opcode, size, operands) ~ _ ~ _ ~ soperand =>
+      Op(opcode, size, operands :+ soperand)
   }
-  val line = op_2 | op_1
+  val line = (lineLabel?) ~ WS ~ (op_2 | op_1) ^^ { case label ~ _ ~ op => Line(label, op) }
 
-  def parse(in: String) = parseAll(line, in) match {
+  def parseLine(in: String) = parseAll(line, in) match {
     case Success(res, _) => Some(res)
     case f:Failure => None
   }
 }
-
