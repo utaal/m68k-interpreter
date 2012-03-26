@@ -1,9 +1,6 @@
 package com.github.utaal.m68k.ast
 
-sealed trait Size
-case object B extends Size
-case object W extends Size
-case object L extends Size
+import com.github.utaal.m68k.{Size, B, W, L}
 
 sealed trait Operand
 sealed trait Const extends Operand
