@@ -86,8 +86,7 @@ case class CPUState(
   def setPC(value: Long) =
     this.copy(PC = ProgramCounter(value))
 
-  def setSR(
-    C: Boolean = SR.C, V: Boolean = SR.V, Z: Boolean = SR.Z, N: Boolean = SR.N, X: Boolean = SR.X) =
-    this.copy(SR = StatusRegister(C, SR.V, SR.Z, SR.N, SR.X))
+  def setSR(sr: StatusRegister) =
+    this.copy(SR = sr)
 }
 
