@@ -6,11 +6,16 @@ import scala.util.parsing.combinator.RegexParsers
 object M68kParser extends RegexParsers {
   override val skipWhitespace = false
   val NUMBER = regex("""[0-9]+""".r) ^^ { n => n.toInt }
+  val intLiteral = NUMBER ^^ { n => IntLiteral(n) }
+  val charLiteral = rep("'") ~> regex("""[A-Za-z]""".r) <~ rep("'") ^^ {
+    c => CharLiteral(c.charAt(0))
+  }
+  val literal = intLiteral | charLiteral
   val WS = rep(" ")
-  val immediate = "#" ~> NUMBER ^^ { case n => Immed(n) }
+  val immediate = "#" ~> literal ^^ { case n => Immed(n) }
   val LABEL = regex("""[a-zA-Z_][0-9a-zA-Z_]+""".r) ^^ { label => label.toLowerCase }
   val labelImmediate = "#" ~> LABEL ^^ { case label => Label(label) }
-  val const = immediate | labelImmediate
+  val const = labelImmediate | immediate
   val DATA_REG = "D" ~> NUMBER ^^ { n => Data(n) }
   val ADDR_REG = "A" ~> NUMBER ^^ { n => Address(n) }
   val register = (DATA_REG | ADDR_REG) ^^ { s => Direct(s) }
@@ -41,10 +46,23 @@ object M68kParser extends RegexParsers {
     case Op(opcode, size, operands) ~ _ ~ _ ~ soperand =>
       Op(opcode, size, operands :+ soperand)
   }
-  val line = (lineLabel?) ~ WS ~ (op_2 | op_1) ^^ { case label ~ _ ~ op => Line(label, op) }
+  val opLine = (lineLabel?) ~ WS ~ (op_2 | op_1) ^^ { case label ~ _ ~ op => OpLine(label, op) }
+
+  val org = "ORG" ~ WS ~ NUMBER ^^ { case _ ~ _ ~ value => Org(value) }
+  val end = "END" ~ WS ~ labelImmediate ^^ { case _ ~ _ ~ lbl => End(lbl) }
+
+  val equ = "EQU" ~ WS ~ NUMBER ^^ { case _ ~ _ ~ value => Equ(value) }
+  val ds = "DS" ~ SIZE ~ WS ~ NUMBER ^^ { case _ ~ size ~ _ ~ num => DS(size, num) }
+  
+  val directiveLine = (org | end) ^^ { d => DirectiveLine(d) }
+  val labeledDirectiveLine = lineLabel ~ WS ~ (equ | ds) ^^ {
+    case lbl ~ _ ~ dir => LabeledDirectiveLine(lbl, dir)
+  }
+
+  val line = (opLine | directiveLine | labeledDirectiveLine)
 
   def parseLine(in: String) = parseAll(line, in) match {
     case Success(res, _) => Some(res)
-    case f:Failure => None
+    case f:Failure => error(f.toString()); None
   }
 }
