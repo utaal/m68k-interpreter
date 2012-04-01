@@ -94,12 +94,8 @@ package DataOps {
 }
 
 package ControlOps {
-  class Unary(
+  case class Unary(
     val opcode: String, val dest: InstructionAddressing) extends Op
-
-  object Unary {
-    def apply(opcode: String, dest: InstructionAddressing) = new Unary(opcode, dest)
-  }
 }
 
 sealed trait Line
