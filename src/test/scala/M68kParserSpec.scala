@@ -48,6 +48,14 @@ class M68kParserSpec extends mutable.Specification {
       ))
     }
 
+    "accept instructions with absolute addressing as operand(s)" in {
+      "MOVE.L ll1, D0" parsesAs OpLine(None, DataOps.MOVE(
+        Size.L,
+        DataAddressing.Absolute.Label("ll1"),
+        DataAddressing.Direct.Data(Register.Data(0))
+      ))
+    }
+
     "accept unary control ops" in {
       "JMP label" parsesAs OpLine(None, ControlOps.Unary(
         "JMP",
@@ -84,5 +92,34 @@ class M68kParserSpec extends mutable.Specification {
          )
     }
   }
+
+  "The M68k parser" should {
+    "accept an entire program" in {
+      val program =
+        """|SECTION DATA
+           |ORG 100
+           |d1: DS.W 3
+           |SECTION CODE
+           |ORG 200
+           |begin: MOVE.W d1, D0
+           |END CODE""".stripMargin
+      M68kParser.parseProgram(program) should beLike {
+        case Right(p) => p must_== Program(
+          Section("DATA", 100,
+            DirectiveLine.DS(Some("d1"), Size.W, 3) ::
+            Nil
+          ) ::
+          Section("CODE", 200,
+            OpLine(Some("begin"), DataOps.MOVE(Size.W, DataAddressing.Absolute.Label("d1"),
+              DataAddressing.Direct.Data(Register.Data(0)))) ::
+            DirectiveLine.End(None, "CODE") ::
+            Nil
+          ) ::
+          Nil
+        )
+      }
+    }
+  }
+
 }
 

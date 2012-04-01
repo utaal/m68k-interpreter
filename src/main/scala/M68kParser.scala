@@ -54,7 +54,11 @@ object M68kParser extends RegexParsers {
       basic.number ~ "(" ~ register.address ~ "," ~ ws ~ register.data ~ basic.wl ~ ")" ^^ {
       case displ ~ _ ~ idx ~ _ ~ _ ~ reg ~ size ~ _ => IdxBaseDispl(displ, idx, reg, size)
     }
-    def absolute = basic.number ~ basic.wl ^^ { case addr ~ size => Absolute(addr, size) }
+    def absoluteAddress = basic.number ~ basic.wl ^^ {
+      case addr ~ size => Absolute.Address(addr, size)
+    }
+    def absoluteLabel = basic.label ^^ { lbl => Absolute.Label(lbl) }
+    def absolute = absoluteAddress | absoluteLabel
   }
 
   object instructionAddressing {

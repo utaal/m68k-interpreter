@@ -38,7 +38,11 @@ object DataAddressing {
   case class IdxBaseDispl(
     displ: Int, index: Register.Address, base: Register.Data, baseSize: Size.WL)
     extends DataAddressing
-  case class Absolute(addr: Int, size: Size.WL) extends DataAddressing
+  sealed trait Absolute extends DataAddressing
+  object Absolute {
+    case class Address(addr: Int, size: Size.WL) extends Absolute
+    case class Label(label: String) extends Absolute
+  }
 }
 
 sealed trait InstructionAddressing extends Operand
