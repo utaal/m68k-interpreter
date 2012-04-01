@@ -12,7 +12,14 @@ object Register {
   case class Address(override val number: Int) extends Register
 }
 
-sealed trait InstructionAddressing extends Operand
+sealed trait Literal
+
+object Literal {
+  case class Int(value: scala.Int) extends Literal
+  case class Char(value: scala.Char) extends Literal
+  case class Label(name: String) extends Literal
+}
+
 sealed trait DataAddressing extends Operand
 
 object DataAddressing {
@@ -34,51 +41,80 @@ object DataAddressing {
   case class Absolute(addr: Int, size: Size.WL) extends DataAddressing
 }
 
+sealed trait InstructionAddressing extends Operand
+
+object InstructionAddressing {
+  sealed trait Relative extends InstructionAddressing
+  object Relative {
+    case class Label(name: String) extends Relative
+  }
+}
+
 sealed trait Op {
   def opcode: String
+}
+
+sealed trait SizedOp extends Op {
   def size: Size
 }
 
-class BinaryDataOp(
-  val opcode: String, val size: Size, val src: DataAddressing, val dest: DataAddressing) extends Op 
+package DataOps {
+  class Binary(
+    val opcode: String, val size: Size, val src: DataAddressing, val dest: DataAddressing)
+    extends SizedOp {
+    override def toString =
+      "Binary(%s,%s,%s,%s)" format (opcode, size.toString, src.toString, dest.toString)
+    override def equals(other: Any): Boolean = other match {
+      case b:Binary => opcode == b.opcode && size == b.size && src == b.src && dest == b.dest
+      case _ => false
+    }
+  }
 
-object BinaryDataOp {
-  def apply(opcode: String, size: Size, src: DataAddressing, dest: DataAddressing) =
-    new BinaryDataOp(opcode, size, src, dest)
+  object Binary {
+    def apply(opcode: String, size: Size, src: DataAddressing, dest: DataAddressing) =
+      new Binary(opcode, size, src, dest)
+  }
 
   case class MOVE(
     override val size: Size,
     override val src: DataAddressing,
-    override val dest: DataAddressing) extends BinaryDataOp("MOVE", size, src, dest)
+    override val dest: DataAddressing) extends Binary("MOVE", size, src, dest)
 
   case class BinaryA(
     override val opcode: String,
     override val size: Size.WL,
     override val src: DataAddressing,
-    override val dest: DataAddressing.Direct.Address) extends BinaryDataOp(opcode, size, src, dest)
+    override val dest: DataAddressing.Direct.Address) extends Binary(opcode, size, src, dest)
 
+  case class BinaryI(
+    override val opcode: String,
+    override val size: Size,
+    override val src: DataAddressing.Immediate,
+    override val dest: DataAddressing) extends Binary(opcode, size, src, dest)
 }
 
-sealed trait Literal
+package ControlOps {
+  class Unary(
+    val opcode: String, val dest: InstructionAddressing) extends Op
 
-object Literal {
-  case class Int(value: scala.Int) extends Literal
-  case class Char(value: scala.Char) extends Literal
+  object Unary {
+    def apply(opcode: String, dest: InstructionAddressing) = new Unary(opcode, dest)
+  }
 }
-/*
-case class Op(opcode: String, size: Option[Size], operands: List[Operand])
-
-sealed trait LabeledDirective
-sealed trait Directive
-case class Equ(value: Int) extends LabeledDirective
-case class Org(address: Int) extends Directive
-case class DC(size: Size, values: List[Literal]) extends LabeledDirective
-case class DS(size: Size, count: Int) extends LabeledDirective
-case class End(label: Label) extends Directive
 
 sealed trait Line
+
+case class Section(name: String, org: Int, lines: List[Line])
+
+sealed trait DirectiveLine extends Line
+object DirectiveLine {
+  case class Equ(label: String, value: Int) extends DirectiveLine
+  case class DC(label: Option[String], size: Size, values: List[Literal]) extends DirectiveLine
+  case class DS(label: Option[String], size: Size, count: Int) extends DirectiveLine
+  case class End(label: Option[String], entryPoint: String) extends DirectiveLine
+}
+
 case class OpLine(label: Option[String], op: Op) extends Line
-case class DirectiveLine(directive: Directive) extends Line
-case class LabeledDirectiveLine(label: String, labeledDirective: LabeledDirective) extends Line
-*/
+
+case class Program(sections: List[Section])
 
