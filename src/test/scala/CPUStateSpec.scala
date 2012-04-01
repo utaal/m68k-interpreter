@@ -15,10 +15,10 @@ class CPUStateSpec extends mutable.Specification {
 
     "produce a new RegisterState when a value is set" in {
       val r0 = RegisterState(0xdeadbeefL)
-      r0.set(L, 0xfefefefeL).value must_== 0xfefefefeL
-      r0.set(W, 0xfefeL).value must_== 0xdeadfefeL
-      r0.set(B, 0xfeL).value must_== 0xdeadbefeL
-      r0.set(B, 0xfefeL).value must_== 0xdeadbefeL
+      r0.set(Size.L, 0xfefefefeL).value must_== 0xfefefefeL
+      r0.set(Size.W, 0xfefeL).value must_== 0xdeadfefeL
+      r0.set(Size.B, 0xfeL).value must_== 0xdeadbefeL
+      r0.set(Size.B, 0xfefeL).value must_== 0xdeadbefeL
     }
   }
 
@@ -36,13 +36,13 @@ class CPUStateSpec extends mutable.Specification {
     }
     "correctly produce new instances of itself on register change" in {
       val st = CPUState()
-      val st1 = st.setD(3, L, 0xdeadbeefL)
+      val st1 = st.setD(3, Size.L, 0xdeadbeefL)
       st1.D(3).value must_== 0xdeadbeefL
-      st1.setD(4, L, 0xfefefefeL).D(3).value must_== 0xdeadbeefL
-      st.setA(CPUState.AddressRegisterNumber + 1, L, 0) must throwAn[IllegalArgumentException]
-      st.setA(4, W, 0xfefefefeL).A(4).value must_== 0xfefeL
-      st.setFP(L, 0xafafafafL).FP.value must_== 0xafafafafL
-      st.setSP(B, 0xaffa).SP.value must_== 0xfaL
+      st1.setD(4, Size.L, 0xfefefefeL).D(3).value must_== 0xdeadbeefL
+      st.setA(CPUState.AddressRegisterNumber + 1, Size.L, 0) must throwAn[IllegalArgumentException]
+      st.setA(4, Size.W, 0xfefefefeL).A(4).value must_== 0xfefeL
+      st.setFP(Size.L, 0xafafafafL).FP.value must_== 0xafafafafL
+      st.setSP(Size.B, 0xaffa).SP.value must_== 0xfaL
     }
   }
 

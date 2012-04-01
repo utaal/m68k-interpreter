@@ -9,9 +9,9 @@ object RegisterState {
 case class RegisterState(value: Long) {
   require (value >= 0L && value <= 0xffffffffL)
   def getMask(size: Size): Long = size match {
-    case B => 0xffL
-    case W => 0xffffL
-    case L => 0xffffffffL
+    case Size.B => 0xffL
+    case Size.W => 0xffffL
+    case Size.L => 0xffffffffL
   }
   def mask(size: Size, value: Long): Long = value & getMask(size)
   def reverseMask(size: Size, value: Long): Long = value & (0xffffffffL ^ getMask(size))
