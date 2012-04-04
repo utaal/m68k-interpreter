@@ -6,6 +6,7 @@ trait Memory {
   def memSize: Long
   def set(size: Size, addr: Long, value: Long): Memory
   def get(size: Size, addr: Long): Long
+  def dump: String
 }
 
 object LinearMemory {
@@ -37,4 +38,13 @@ class LinearMemory private (override val memSize: Long, memory: Vector[Char]) ex
     val vec = Vector.tabulate[Char](len)(i => ((value >> (8 * (len - 1 - i))) & 0xffL).toChar)
     new LinearMemory(memSize, memory.patch(addr.toInt, vec, size.bytes))
   }
+
+  def dump: String = {
+    def hexString(grp: Seq[Char]) = grp.map("%02X" format _.toInt).mkString(" ")
+    def printableString(grp: Seq[Char]) =
+      grp.map { x => if (x.isLetterOrDigit) x else "?" }.mkString("")
+    memory.view.grouped(8).zipWithIndex.filter(_._1.exists(_ != 0)).map {
+      case (x, i) => ("%8d" format (i * 8)) + "    " + hexString(x) + "    " + printableString(x)
+    } mkString "\n"
+  } 
 }
