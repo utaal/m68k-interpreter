@@ -2,18 +2,22 @@ import com.github.utaal.m68k._
 import com.github.utaal.m68k.ast._
 
 import org.specs2._
+import org.specs2.matcher.Matcher
 
 class M68kParserSpec extends mutable.Specification {
   implicit def ParsableString(a: String) = new {
-    import com.github.utaal.m68k.{M68kParser => pp}
-    private def parseMustEqual[T](parser: pp.Parser[T])(exp: T) =
-      pp.parseAll(parser, a) must beLike {
-        case pp.Success(res, _) => res must_== exp
-      }
+    val pp = new M68kParser()
+    private def mequal[T](parser: pp.Parser[T], exp: T): Matcher[String] = { (actual: String) =>
+      (pp.parseAll(parser, actual) match {
+         case pp.Success(res, _) => res == exp
+         case _ => false
+       },
+       actual + " is /= from " + t.toString)
+   }
 
-    def parsesAs(opLine: OpLine) = parseMustEqual(pp.opLine)(opLine)
-    def parsesAs(dirLine: DirectiveLine) = parseMustEqual(pp.directiveLine)(dirLine)
-    def parsesAs(section: Section) = parseMustEqual(pp.section)(section)
+    def parsesAs(opLine: OpLine) = a must mequal(pp.opLine, opLine)
+    def parsesAs(dirLine: DirectiveLine) = a must mequal(pp.directiveLine, dirLine)
+    def parsesAs(section: Section) = a must mequal(pp.section, section)
   }
 
   "The M68kParser.opLine production" should {

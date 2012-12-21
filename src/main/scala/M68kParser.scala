@@ -3,7 +3,7 @@ package com.github.utaal.m68k
 import com.github.utaal.m68k.ast._
 import scala.util.parsing.combinator.RegexParsers
 
-object M68kParser extends RegexParsers {
+class M68kParser extends RegexParsers {
   override val skipWhitespace = false
 
   object basic {
@@ -172,5 +172,10 @@ object M68kParser extends RegexParsers {
     case Success(res, _) => Right(res)
     case f:Failure => Left(f.toString())
   }
-
 }
+
+
+object M68kParser {
+  def parseProgram(in: String): Either[String, Program] = (new M68kParser).parseProgram(in)
+}
+
