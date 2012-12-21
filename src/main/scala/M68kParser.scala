@@ -17,7 +17,7 @@ object M68kParser extends RegexParsers {
       case "W" => Size.W
       case "L" => Size.L
     } }
-    def label = regex("""[a-zA-Z_][0-9a-zA-Z_]+""".r)
+    def label = regex("""[a-zA-Z_][0-9a-zA-Z_]*""".r)
     def eol = ws ~ rep(elem('\n'))
   }
 
@@ -27,7 +27,7 @@ object M68kParser extends RegexParsers {
       c => Literal.Char(c.charAt(0))
     }
     def label = basic.label ^^ { lbl => Literal.Label(lbl) }
-    def apply(in: Input): ParseResult[Literal] = (int | char)(in)
+    def apply(in: Input): ParseResult[Literal] = (int | char | label)(in)
   }
 
   def ws = rep(elem(' '))
