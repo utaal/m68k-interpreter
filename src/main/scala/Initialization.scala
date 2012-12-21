@@ -4,16 +4,26 @@ import com.github.utaal.m68k.ast._
 
 case class Initialization(
   val symbols: Map[String, Long],
-  val memAlloc: Map[Long, (Size, Long)]) {
+  val memAlloc: Map[Long, (Size, Long)],
+  val code: Map[Long, Op]) {
 
   def addSymbol(label: String, value: Long) = this.copy(symbols=symbols + (label -> value))
 
   def addMemAlloc(addr: Long, size: Size, value: Long) =
     this.copy(memAlloc=memAlloc + (addr -> (size, value)))
+
+  def addOpCode(addr: Long, op: Op) =
+    this.copy(code=code + (addr -> op))
+
+  def applyTo(memory: Memory): Memory =
+    (memory /: memAlloc){ case (mem, (addr, (size, value))) => mem.set(size, addr, value) }
 }
 
 object Initialization {
-  def apply(): Initialization = Initialization(Map[String, Long](), Map[Long, (Size, Long)]())
+  def apply(): Initialization = Initialization(
+    Map[String, Long](),
+    Map[Long, (Size, Long)](),
+    Map[Long, Op]())
 
   private def withSymbol(init: Initialization, lbl: Option[String], pos: Long) =
     (lbl map (l => init.addSymbol(l, pos))) getOrElse init
@@ -45,6 +55,5 @@ object Initialization {
     (Initialization() /: program.sections) { case (init, Section(_, org, lines)) =>
       ((org.toLong, init) /: lines)(lineFold)._2
     }
-
-
 }
+
